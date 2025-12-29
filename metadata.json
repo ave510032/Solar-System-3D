@@ -1,0 +1,7 @@
+{
+  "name": "Gemini Solar System 3D",
+  "description": "Интерактивная 3D модель солнечной системы в реальном времени с использованием Gemini API для обучения, генерации текстур и поиска обсерваторий.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
