@@ -1,7 +1,10 @@
 import { CelestialBody } from './types';
 
-// Reliable texture source from manomaxx/solar-system-threejs (Clone of a popular dataset)
-const TEXTURE_PATH = "https://raw.githubusercontent.com/manomaxx/solar-system-threejs/master/public/img";
+// Updated reliable texture source
+const TEXTURE_PATH = "https://raw.githubusercontent.com/gle58/solar-system-threejs/main/public/textures";
+
+// High-res galaxy background (ESO/NASA source or reliable GitHub mirror)
+export const DEFAULT_BACKGROUND_URL = "https://upload.wikimedia.org/wikipedia/commons/8/89/ESO_-_Milky_Way.jpg";
 
 // Valid Base64 Texture for Saturn's Ring (Gradient from transparent to white to transparent)
 const SATURN_RING_TEXTURE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAABCAYAAAA5120lAAAANUlEQVR42u3OsQ0AAAjDPPv/nHABExVxwqXbu6HWFwAAAAAAAAAAAADgJwAAAAAAAH4BAgAAKDQCNd6pfWMAAAAASUVORK5CYII=";
@@ -98,6 +101,47 @@ export const INITIAL_BODIES: CelestialBody[] = [
     ]
   },
   {
+    name: "Vesta",
+    nameRu: "Веста",
+    type: "asteroid",
+    radius: 0.5,
+    distance: 68,
+    speed: 0.4,
+    color: "#888888",
+    description: "Крупнейший яркий астероид главного пояса. Единственный астероид, видимый невооруженным глазом."
+  },
+  {
+    name: "Pallas",
+    nameRu: "Паллада",
+    type: "asteroid",
+    radius: 0.5,
+    distance: 72,
+    speed: 0.38,
+    color: "#4B5D69",
+    description: "Третий по величине объект в поясе астероидов. Богата силикатами."
+  },
+  {
+    name: "Ceres",
+    nameRu: "Церера",
+    type: "dwarf",
+    radius: 0.9,
+    distance: 76,
+    speed: 0.35,
+    color: "#aaa",
+    textureUrl: `${TEXTURE_PATH}/ceres.jpg`,
+    description: "Самая близкая к нам карликовая планета в поясе астероидов. На ней обнаружены криовулканы."
+  },
+  {
+    name: "Hygiea",
+    nameRu: "Гигея",
+    type: "asteroid",
+    radius: 0.45,
+    distance: 82,
+    speed: 0.32,
+    color: "#383838",
+    description: "Четвертый по величине объект пояса астероидов. Состоит из углеродистых материалов."
+  },
+  {
     name: "Jupiter",
     nameRu: "Юпитер",
     type: "planet",
@@ -169,6 +213,19 @@ export const INITIAL_BODIES: CelestialBody[] = [
     ]
   },
   {
+    name: "Orcus",
+    nameRu: "Орк",
+    type: "dwarf",
+    radius: 0.8,
+    distance: 245,
+    speed: 0.0041,
+    color: "#8C8C8C",
+    description: "Крупный транснептуновый объект, называемый «анти-Плутоном» из-за схожей орбиты.",
+    moons: [
+        { name: "Vanth", nameRu: "Вант", type: "moon", radius: 0.3, distance: 3, speed: 1.1, color: "#7a7a7a", description: "Спутник Орка." }
+    ]
+  },
+  {
     name: "Pluto",
     nameRu: "Плутон",
     type: "dwarf",
@@ -181,5 +238,54 @@ export const INITIAL_BODIES: CelestialBody[] = [
     moons: [
       { name: "Charon", nameRu: "Харон", type: "moon", radius: 0.6, distance: 3, speed: 1, color: "#9ca3af", description: "Крупнейший спутник Плутона." }
     ]
+  },
+  {
+    name: "Haumea",
+    nameRu: "Хаумеа",
+    type: "dwarf",
+    radius: 1.1,
+    distance: 270,
+    speed: 0.0035,
+    color: "#e3e3e3",
+    textureUrl: `${TEXTURE_PATH}/haumea.jpg`,
+    description: "Карликовая планета необычной вытянутой формы из-за быстрого вращения.",
+    moons: [
+       { name: "Hi'iaka", nameRu: "Хииака", type: "moon", radius: 0.3, distance: 4, speed: 1.5, color: "#ccc", description: "Спутник Хаумеа." }
+    ]
+  },
+  {
+    name: "Makemake",
+    nameRu: "Макемаке",
+    type: "dwarf",
+    radius: 1.15,
+    distance: 295,
+    speed: 0.003,
+    color: "#cf9a74",
+    textureUrl: `${TEXTURE_PATH}/makemake.jpg`,
+    description: "Третья по величине карликовая планета. Покрыта метановым льдом."
+  },
+  {
+    name: "Eris",
+    nameRu: "Эрида",
+    type: "dwarf",
+    radius: 1.25,
+    distance: 340,
+    speed: 0.002,
+    color: "#ffffff",
+    textureUrl: `${TEXTURE_PATH}/eris.jpg`,
+    description: "Самая массивная карликовая планета, расположенная в рассеянном диске.",
+    moons: [
+        { name: "Dysnomia", nameRu: "Дисномия", type: "moon", radius: 0.4, distance: 5, speed: 1.2, color: "#bbb", description: "Спутник Эриды." }
+    ]
+  },
+  {
+    name: "Sedna",
+    nameRu: "Седна",
+    type: "dwarf",
+    radius: 1.0,
+    distance: 400,
+    speed: 0.001,
+    color: "#8B0000",
+    description: "Транснептуновый объект с очень вытянутой орбитой. Один из самых красных объектов Солнечной системы."
   }
 ];

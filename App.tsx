@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SolarSystem from './components/SolarSystem';
 import UIOverlay from './components/UIOverlay';
-import { INITIAL_BODIES } from './constants';
+import { INITIAL_BODIES, DEFAULT_BACKGROUND_URL } from './constants';
 import { CelestialBody } from './types';
 import { generateSpaceImage } from './services/geminiService';
 import { Sparkles, Loader2 } from 'lucide-react';
@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [selectedBody, setSelectedBody] = useState<CelestialBody | null>(null);
   const [timeSpeed, setTimeSpeed] = useState<number>(1);
   const [customTextures, setCustomTextures] = useState<Record<string, string>>({});
+  const [backgroundUrl, setBackgroundUrl] = useState<string>(DEFAULT_BACKGROUND_URL);
   const [isEnhancing, setIsEnhancing] = useState(false);
 
   const handleTextureUpdate = (name: string, url: string) => {
@@ -39,6 +40,7 @@ const App: React.FC = () => {
     ];
 
     try {
+      // 1. Generate Planets
       const promises = targets.map(async (target) => {
         try {
           // Using 16:9 as the widest standard aspect ratio available to approximate a map projection
@@ -50,7 +52,17 @@ const App: React.FC = () => {
         }
       });
 
-      const results = await Promise.all(promises);
+      // 2. Generate Background (Parallel)
+      const bgPromise = generateSpaceImage(
+        "Panoramic view of the Milky Way galaxy, deep space, colorful nebula, bright stars, high contrast, 8k resolution, photorealistic",
+        "16:9",
+        "2K"
+      );
+
+      const [results, newBgUrl] = await Promise.all([
+        Promise.all(promises),
+        bgPromise.catch(e => { console.error("BG Gen failed", e); return null; })
+      ]);
       
       const newTextures: Record<string, string> = {};
       results.forEach(res => {
@@ -60,6 +72,10 @@ const App: React.FC = () => {
       });
 
       setCustomTextures(prev => ({ ...prev, ...newTextures }));
+      if (newBgUrl) {
+        setBackgroundUrl(newBgUrl);
+      }
+
     } catch (error) {
       console.error("Global enhancement error", error);
     } finally {
@@ -75,6 +91,7 @@ const App: React.FC = () => {
         selectedBody={selectedBody}
         onSelectBody={setSelectedBody}
         customTextures={customTextures}
+        backgroundTextureUrl={backgroundUrl}
       />
       
       {/* Title Overlay */}
@@ -99,12 +116,12 @@ const App: React.FC = () => {
           {isEnhancing ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm font-medium">Generating Textures...</span>
+              <span className="text-sm font-medium">Generating Cosmos...</span>
             </>
           ) : (
             <>
               <Sparkles size={16} className="text-yellow-300" />
-              <span className="text-sm font-medium">AI Enhance Planets</span>
+              <span className="text-sm font-medium">AI Enhance System</span>
             </>
           )}
         </button>

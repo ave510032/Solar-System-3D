@@ -1,7 +1,7 @@
 export interface CelestialBody {
   name: string;
   nameRu: string;
-  type: 'star' | 'planet' | 'dwarf' | 'moon';
+  type: 'star' | 'planet' | 'dwarf' | 'asteroid' | 'moon';
   radius: number; // Relative size
   distance: number; // Distance from Sun
   speed: number; // Orbital speed

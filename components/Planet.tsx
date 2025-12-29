@@ -122,7 +122,9 @@ const Ring: React.FC<{ config: NonNullable<CelestialBody['ringConfig']> }> = ({ 
 
   return (
     <TextureErrorBoundary fallback={<ColorRing />}>
-      {config.textureUrl ? <TextureRing /> : <ColorRing />}
+      <React.Suspense fallback={<ColorRing />}>
+         {config.textureUrl ? <TextureRing /> : <ColorRing />}
+      </React.Suspense>
     </TextureErrorBoundary>
   );
 };
@@ -161,6 +163,7 @@ const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSe
   });
 
   const activeTextureUrl = customTextures[data.name] || data.textureUrl;
+  const Fallback = () => <FallbackBodyMesh data={data} timeSpeed={timeSpeed} onSelect={onSelect} />;
 
   return (
     <>
@@ -182,17 +185,19 @@ const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSe
         )}
 
         {/* Body Mesh with Safe Loading */}
-        <TextureErrorBoundary fallback={<FallbackBodyMesh data={data} timeSpeed={timeSpeed} onSelect={onSelect} />}>
-          {activeTextureUrl ? (
-            <TexturedBodyMesh 
-              data={data} 
-              textureUrl={activeTextureUrl} 
-              timeSpeed={timeSpeed} 
-              onSelect={onSelect} 
-            />
-          ) : (
-            <FallbackBodyMesh data={data} timeSpeed={timeSpeed} onSelect={onSelect} />
-          )}
+        <TextureErrorBoundary fallback={<Fallback />}>
+          <React.Suspense fallback={<Fallback />}>
+            {activeTextureUrl ? (
+              <TexturedBodyMesh 
+                data={data} 
+                textureUrl={activeTextureUrl} 
+                timeSpeed={timeSpeed} 
+                onSelect={onSelect} 
+              />
+            ) : (
+              <Fallback />
+            )}
+          </React.Suspense>
         </TextureErrorBoundary>
 
         {/* Atmosphere for Earth/Venus */}
