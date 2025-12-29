@@ -1,7 +1,10 @@
 import { CelestialBody } from './types';
 
-// Reliable texture source from spacekit
-const TEXTURE_PATH = "https://raw.githubusercontent.com/typpo/spacekit/master/examples/assets";
+// Reliable texture source from manomaxx/solar-system-threejs (Clone of a popular dataset)
+const TEXTURE_PATH = "https://raw.githubusercontent.com/manomaxx/solar-system-threejs/master/public/img";
+
+// Valid Base64 Texture for Saturn's Ring (Gradient from transparent to white to transparent)
+const SATURN_RING_TEXTURE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAABCAYAAAA5120lAAAANUlEQVR42u3OsQ0AAAjDPPv/nHABExVxwqXbu6HWFwAAAAAAAAAAAADgJwAAAAAAAH4BAgAAKDQCNd6pfWMAAAAASUVORK5CYII=";
 
 export const INITIAL_BODIES: CelestialBody[] = [
   {
@@ -34,7 +37,7 @@ export const INITIAL_BODIES: CelestialBody[] = [
     distance: 30,
     speed: 1.6,
     color: "#E6DBD1",
-    textureUrl: `${TEXTURE_PATH}/venus_atmosphere.jpg`,
+    textureUrl: `${TEXTURE_PATH}/venus.jpg`,
     description: "Вторая планета от Солнца. Имеет плотную атмосферу из углекислого газа."
   },
   {
@@ -45,7 +48,7 @@ export const INITIAL_BODIES: CelestialBody[] = [
     distance: 45,
     speed: 1,
     color: "#2D3B6E",
-    textureUrl: `${TEXTURE_PATH}/earth_day.jpg`,
+    textureUrl: `${TEXTURE_PATH}/earth.jpg`,
     description: "Наш дом. Единственное известное тело во Вселенной, населенное живыми организмами.",
     moons: [
       {
@@ -123,7 +126,7 @@ export const INITIAL_BODIES: CelestialBody[] = [
     ringConfig: {
       innerRadius: 10,
       outerRadius: 18,
-      textureUrl: `${TEXTURE_PATH}/saturn_ring.png`,
+      textureUrl: SATURN_RING_TEXTURE,
       rotation: [-Math.PI / 2.5, 0, 0]
     },
     description: "Шестая планета, известная своей впечатляющей системой колец.",
