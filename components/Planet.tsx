@@ -1,5 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { CelestialBody } from '../types';
@@ -9,28 +9,9 @@ interface PlanetProps {
   timeSpeed: number;
   selectedBodyName: string | undefined;
   onSelect: (data: CelestialBody) => void;
-  customTextures: Record<string, string>;
 }
 
-// Error Boundary for Texture Loading to prevent app crash
-class TextureErrorBoundary extends React.Component<{ fallback: React.ReactNode, children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-    return this.props.children;
-  }
-}
-
-// Fallback component when texture fails
-const FallbackBodyMesh: React.FC<{
+const PlanetMesh: React.FC<{
   data: CelestialBody;
   timeSpeed: number;
   onSelect: (data: CelestialBody) => void;
@@ -58,95 +39,65 @@ const FallbackBodyMesh: React.FC<{
       {data.type === 'star' ? (
         <meshBasicMaterial color={data.color} />
       ) : (
-        <meshStandardMaterial color={data.color} roughness={0.5} metalness={0.1} />
+        <meshStandardMaterial color={data.color} roughness={0.7} metalness={0.1} />
       )}
     </mesh>
   );
 };
 
-// Component that loads texture
-const TexturedBodyMesh: React.FC<{
-  data: CelestialBody;
-  textureUrl: string;
-  timeSpeed: number;
-  onSelect: (data: CelestialBody) => void;
-}> = ({ data, textureUrl, timeSpeed, onSelect }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const map = useLoader(THREE.TextureLoader, textureUrl);
-
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.05 * delta * (timeSpeed > 0 ? 1 : 0);
-    }
-  });
-
-  return (
-    <mesh
-      ref={meshRef}
-      name={data.name}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(data);
-      }}
-      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { document.body.style.cursor = 'auto'; }}
-    >
-      <sphereGeometry args={[data.radius, 64, 64]} />
-      {data.type === 'star' ? (
-        <meshBasicMaterial map={map} color="#ffffff" />
-      ) : (
-        <meshStandardMaterial map={map} color="#ffffff" roughness={0.5} metalness={0.1} />
-      )}
-    </mesh>
-  );
-};
-
-// Ring Component with Texture Safety
 const Ring: React.FC<{ config: NonNullable<CelestialBody['ringConfig']> }> = ({ config }) => {
-  const TextureRing = () => {
-    const map = useLoader(THREE.TextureLoader, config.textureUrl!);
-    return (
-      <mesh rotation={new THREE.Euler(...(config.rotation || [-Math.PI / 2, 0, 0]))} onClick={(e) => e.stopPropagation()}>
-        <ringGeometry args={[config.innerRadius, config.outerRadius, 64]} />
-        <meshStandardMaterial map={map} color={config.color || '#ffffff'} side={THREE.DoubleSide} transparent opacity={0.8} />
-      </mesh>
-    );
-  };
-
-  const ColorRing = () => (
-    <mesh rotation={new THREE.Euler(...(config.rotation || [-Math.PI / 2, 0, 0]))} onClick={(e) => e.stopPropagation()}>
-      <ringGeometry args={[config.innerRadius, config.outerRadius, 64]} />
-      <meshStandardMaterial color={config.color || '#ffffff'} side={THREE.DoubleSide} transparent opacity={0.8} />
-    </mesh>
-  );
+  const ringTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 128, 0);
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(0.2, config.color || 'rgba(255,255,255,0.5)');
+      gradient.addColorStop(0.5, config.color || 'rgba(255,255,255,0.8)');
+      gradient.addColorStop(0.8, config.color || 'rgba(255,255,255,0.5)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 1);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    return texture;
+  }, [config.color]);
 
   return (
-    <TextureErrorBoundary fallback={<ColorRing />}>
-      <React.Suspense fallback={<ColorRing />}>
-         {config.textureUrl ? <TextureRing /> : <ColorRing />}
-      </React.Suspense>
-    </TextureErrorBoundary>
+    <mesh rotation={new THREE.Euler(...(config.rotation || [-Math.PI / 2, 0, 0]))} onClick={(e) => e.stopPropagation()}>
+      <ringGeometry args={[config.innerRadius, config.outerRadius, 128]} />
+      <meshStandardMaterial 
+        map={ringTexture} 
+        color="#ffffff" 
+        side={THREE.DoubleSide} 
+        transparent 
+        opacity={0.7} 
+        roughness={1}
+      />
+    </mesh>
   );
 };
 
-const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSelect, customTextures }) => {
+const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSelect }) => {
   const orbitRef = useRef<THREE.Group>(null);
   const angleRef = useRef(Math.random() * Math.PI * 2);
 
-  // Generate glow texture programmatically
   const glowTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
-    const context = canvas.getContext('2d');
-    if (context) {
-      const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
       gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.5)');
-      gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.4)');
+      gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.05)');
       gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      context.fillStyle = gradient;
-      context.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
     }
     return new THREE.CanvasTexture(canvas);
   }, []);
@@ -162,12 +113,8 @@ const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSe
     }
   });
 
-  const activeTextureUrl = customTextures[data.name] || data.textureUrl;
-  const Fallback = () => <FallbackBodyMesh data={data} timeSpeed={timeSpeed} onSelect={onSelect} />;
-
   return (
     <>
-      {/* Orbit Path */}
       {data.distance > 0 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[data.distance - 0.1, data.distance + 0.1, 128]} />
@@ -175,43 +122,37 @@ const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSe
         </mesh>
       )}
 
-      {/* Planet Group */}
       <group ref={orbitRef}>
-        {/* Sun Glow */}
         {data.type === 'star' && (
           <sprite scale={[data.radius * 6, data.radius * 6, 1]}>
-            <spriteMaterial map={glowTexture} color={data.color} blending={THREE.AdditiveBlending} transparent opacity={0.6} depthWrite={false} />
+            <spriteMaterial 
+              map={glowTexture} 
+              color={data.color} 
+              blending={THREE.AdditiveBlending} 
+              transparent 
+              opacity={0.6} 
+              depthWrite={false} 
+            />
           </sprite>
         )}
 
-        {/* Body Mesh with Safe Loading */}
-        <TextureErrorBoundary fallback={<Fallback />}>
-          <React.Suspense fallback={<Fallback />}>
-            {activeTextureUrl ? (
-              <TexturedBodyMesh 
-                data={data} 
-                textureUrl={activeTextureUrl} 
-                timeSpeed={timeSpeed} 
-                onSelect={onSelect} 
-              />
-            ) : (
-              <Fallback />
-            )}
-          </React.Suspense>
-        </TextureErrorBoundary>
+        <PlanetMesh data={data} timeSpeed={timeSpeed} onSelect={onSelect} />
 
-        {/* Atmosphere for Earth/Venus */}
-        {(data.name === 'Earth' || data.name === 'Venus') && (
-          <mesh scale={[1.02, 1.02, 1.02]} onClick={(e) => e.stopPropagation()}>
+        {(data.name === 'Earth' || data.name === 'Venus' || data.name === 'Neptune') && (
+          <mesh scale={[1.03, 1.03, 1.03]} onClick={(e) => e.stopPropagation()}>
             <sphereGeometry args={[data.radius, 32, 32]} />
-            <meshBasicMaterial color={data.name === 'Earth' ? '#4b9bd4' : '#d4b44b'} transparent opacity={0.2} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
+            <meshBasicMaterial 
+              color={data.name === 'Earth' ? '#4169E1' : data.name === 'Venus' ? '#FFC649' : '#4166F5'} 
+              transparent 
+              opacity={0.15} 
+              blending={THREE.AdditiveBlending} 
+              side={THREE.BackSide} 
+            />
           </mesh>
         )}
 
-        {/* Rings */}
         {data.ringConfig && <Ring config={data.ringConfig} />}
 
-        {/* Moons */}
         {data.moons?.map((moon) => (
           <Planet
             key={moon.name}
@@ -219,14 +160,19 @@ const Planet: React.FC<PlanetProps> = ({ data, timeSpeed, selectedBodyName, onSe
             timeSpeed={timeSpeed}
             selectedBodyName={selectedBodyName}
             onSelect={onSelect}
-            customTextures={customTextures}
           />
         ))}
 
-        {/* Label */}
-        <Html position={[0, data.radius + (data.ringConfig ? 5 : 2), 0]} center distanceFactor={20} style={{ pointerEvents: 'none' }}>
+        <Html 
+          position={[0, data.radius + (data.ringConfig ? 8 : 3), 0]} 
+          center 
+          distanceFactor={20} 
+          style={{ pointerEvents: 'none' }}
+        >
           <div
-            className={`transition-all duration-300 text-xs px-2 py-1 rounded bg-black/60 backdrop-blur-md text-white whitespace-nowrap border ${isSelected ? 'border-blue-500 scale-110' : 'border-gray-700/50'}`}
+            className={`transition-all duration-500 text-xs px-2 py-1 rounded bg-black/70 backdrop-blur-lg text-white whitespace-nowrap border shadow-lg ${
+              isSelected ? 'border-blue-400 scale-110 ring-2 ring-blue-500/20' : 'border-white/10 opacity-80'
+            }`}
           >
             {data.nameRu}
           </div>

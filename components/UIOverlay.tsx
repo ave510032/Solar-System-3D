@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { CelestialBody, AspectRatio, ImageSize, ChatMessage, GroundingChunk } from '../types';
-import { Search, MapPin, Image as ImageIcon, BrainCircuit, X, Send, Loader2, Play, Pause, FastForward } from 'lucide-react';
-import { getPlanetInfo, findObservatories, generateSpaceImage, askAstronomer } from '../services/geminiService';
+import { CelestialBody, ChatMessage, GroundingChunk } from '../types';
+import { Search, MapPin, BrainCircuit, X, Send, Loader2, Play, Pause, FastForward } from 'lucide-react';
+import { getPlanetInfo, findObservatories, askAstronomer } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 
 interface UIOverlayProps {
@@ -9,35 +9,24 @@ interface UIOverlayProps {
   onClosePanel: () => void;
   timeSpeed: number;
   setTimeSpeed: (speed: number) => void;
-  onTextureUpdate: (name: string, url: string) => void;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({ 
   selectedBody, 
   onClosePanel, 
   timeSpeed, 
-  setTimeSpeed,
-  onTextureUpdate
+  setTimeSpeed
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'chat' | 'generate' | 'maps'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'chat' | 'maps'>('info');
   const [loading, setLoading] = useState(false);
   
-  // Info State
   const [planetInfo, setPlanetInfo] = useState<string>('');
   const [infoLinks, setInfoLinks] = useState<GroundingChunk[]>([]);
   
-  // Chat State
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   
-  // Maps State
   const [mapsResult, setMapsResult] = useState<{text: string, chunks: any[] | undefined} | null>(null);
-
-  // Image Gen State
-  const [imagePrompt, setImagePrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
-  const [imageSize, setImageSize] = useState<ImageSize>('1K');
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   const handleFetchInfo = async () => {
     if (!selectedBody) return;
@@ -82,31 +71,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         } finally {
           setLoading(false);
         }
+      }, () => {
+        setMapsResult({ text: 'Геолокация отклонена или недоступна.', chunks: [] });
+        setLoading(false);
       });
     } else {
-      setMapsResult({ text: 'Геолокация недоступна.', chunks: [] });
+      setMapsResult({ text: 'Геолокация не поддерживается вашим браузером.', chunks: [] });
       setLoading(false);
-    }
-  };
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    try {
-      const prompt = `Realistic texture or artistic view of ${selectedBody?.nameRu}. ${imagePrompt}`;
-      const url = await generateSpaceImage(prompt, aspectRatio, imageSize);
-      if (url) {
-        setGeneratedImage(url);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyTexture = () => {
-    if (selectedBody && generatedImage) {
-      onTextureUpdate(selectedBody.name, generatedImage);
     }
   };
 
@@ -115,13 +86,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       <div className="absolute top-4 right-4 flex gap-2 z-10">
         <button 
           onClick={() => {
-              setActiveTab('maps');
-              alert("Для поиска обсерваторий выберите сначала любую планету (например, Землю), чтобы открыть панель управления.");
+              alert("Выберите тело в Солнечной системе, чтобы открыть панель управления и функции Gemini.");
           }}
           className="bg-gray-900/80 text-white p-2 rounded-lg border border-gray-700 hover:bg-gray-800 backdrop-blur-md transition"
-          title="Найти обсерваторию"
         >
-          <MapPin size={24} />
+          <Search size={24} />
         </button>
       </div>
     );
@@ -129,7 +98,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   return (
     <div className="absolute top-4 right-4 w-96 bg-gray-900/90 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] text-white z-20 overflow-hidden">
-      {/* Header */}
       <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-950/50">
         <div>
           <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
@@ -142,7 +110,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-gray-700">
         <button 
           onClick={() => setActiveTab('info')} 
@@ -157,12 +124,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <BrainCircuit size={18} />
         </button>
         <button 
-          onClick={() => setActiveTab('generate')} 
-          className={`flex-1 p-3 flex justify-center hover:bg-white/5 transition ${activeTab === 'generate' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400'}`}
-        >
-          <ImageIcon size={18} />
-        </button>
-        <button 
           onClick={() => setActiveTab('maps')} 
           className={`flex-1 p-3 flex justify-center hover:bg-white/5 transition ${activeTab === 'maps' ? 'text-red-400 border-b-2 border-red-400' : 'text-gray-400'}`}
         >
@@ -170,10 +131,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        
-        {/* INFO TAB */}
         {activeTab === 'info' && (
           <div className="space-y-4">
             <p className="text-sm text-gray-300">{selectedBody.description}</p>
@@ -212,7 +170,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
         )}
 
-        {/* CHAT TAB */}
         {activeTab === 'chat' && (
           <div className="flex flex-col h-[400px]">
             <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2">
@@ -253,69 +210,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
         )}
 
-        {/* GENERATE TAB */}
-        {activeTab === 'generate' && (
-          <div className="space-y-4">
-             <div className="grid grid-cols-2 gap-2">
-               <div>
-                  <label className="text-xs text-gray-400">Aspect Ratio</label>
-                  <select 
-                    value={aspectRatio} 
-                    onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
-                    className="w-full bg-black/30 border border-gray-700 rounded p-1 text-xs mt-1"
-                  >
-                    {["1:1", "4:3", "16:9"].map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-               </div>
-               <div>
-                  <label className="text-xs text-gray-400">Size</label>
-                  <select 
-                    value={imageSize} 
-                    onChange={(e) => setImageSize(e.target.value as ImageSize)}
-                    className="w-full bg-black/30 border border-gray-700 rounded p-1 text-xs mt-1"
-                  >
-                    <option value="1K">1K</option>
-                    <option value="2K">2K</option>
-                    <option value="4K">4K</option>
-                  </select>
-               </div>
-             </div>
-             
-             <textarea 
-               value={imagePrompt} 
-               onChange={(e) => setImagePrompt(e.target.value)}
-               placeholder="Опишите текстуру поверхности (лед, лава, кратеры)..."
-               className="w-full bg-black/30 border border-gray-700 rounded-lg p-2 text-sm h-24 focus:border-green-500 outline-none"
-             />
-             
-             <button 
-               onClick={handleGenerate}
-               disabled={loading}
-               className="w-full py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-             >
-               {loading ? <Loader2 className="animate-spin" size={16} /> : <ImageIcon size={16} />}
-               Сгенерировать (Gemini Pro Vision)
-             </button>
-
-             {generatedImage && (
-               <div className="space-y-2 animate-in fade-in duration-500">
-                 <img src={generatedImage} alt="Generated" className="w-full rounded-lg border border-gray-700" />
-                 <button 
-                    onClick={applyTexture}
-                    className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs"
-                 >
-                   Применить как текстуру
-                 </button>
-               </div>
-             )}
-          </div>
-        )}
-
-        {/* MAPS TAB */}
         {activeTab === 'maps' && (
           <div className="space-y-4">
              <p className="text-sm text-gray-300">
-               Используйте Gemini 2.5 с Google Maps, чтобы найти ближайшие места, связанные с астрономией.
+               Используйте Gemini 2.5 с Google Maps, чтобы найти ближайшие планетарии или обсерватории.
              </p>
              <button 
                onClick={handleMaps}
@@ -353,10 +251,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
              )}
           </div>
         )}
-
       </div>
       
-      {/* Time Controls Footer */}
       <div className="p-3 bg-gray-950 border-t border-gray-700 flex items-center justify-between">
          <span className="text-xs text-gray-500">Скорость времени:</span>
          <div className="flex items-center gap-2">
