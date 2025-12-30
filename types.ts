@@ -2,18 +2,26 @@ export interface CelestialBody {
   name: string;
   nameRu: string;
   type: 'star' | 'planet' | 'dwarf' | 'asteroid' | 'moon';
-  radius: number; // Relative size
-  distance: number; // Distance from Sun
-  speed: number; // Orbital speed
+  radius: number; // Visualization size
+  realRadius: number; // km
+  distance: number; // Visualization distance
+  realDistance?: string; // million km
+  speed: number; // Visualization orbital speed
+  mass?: string;
+  gravity?: string;
+  rotationPeriod?: string;
+  orbitalPeriod?: string;
+  temperature?: string;
+  composition?: string[];
+  interestingFacts?: string[];
   color: string;
   description: string;
-  textureUrl?: string;
   ringConfig?: {
     innerRadius: number;
     outerRadius: number;
-    textureUrl?: string;
     color?: string;
     rotation?: [number, number, number];
+    hasGaps?: boolean;
   };
   moons?: CelestialBody[];
 }
