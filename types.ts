@@ -14,6 +14,7 @@ export interface CelestialBody {
   temperature?: string;
   composition?: string[];
   interestingFacts?: string[];
+  explorationHistory?: { year: string; mission: string; detail: string }[];
   color: string;
   description: string;
   ringConfig?: {
@@ -26,27 +27,21 @@ export interface CelestialBody {
   moons?: CelestialBody[];
 }
 
-export interface GroundingChunk {
-  web?: {
-    uri: string;
-    title: string;
-  };
-  maps?: {
-    uri: string;
-    title: string;
-    placeAnswerSources?: {
-      reviewSnippets?: {
-        text: string;
-      }[];
-    }[];
-  };
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  isUnlocked: boolean;
 }
 
-export interface ChatMessage {
-  role: 'user' | 'model';
-  text: string;
-  isThinking?: boolean;
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number;
 }
 
-export type AspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "9:16" | "16:9" | "21:9";
-export type ImageSize = "1K" | "2K" | "4K";
+export interface Tour {
+  id: string;
+  name: string;
+  targets: string[];
+}

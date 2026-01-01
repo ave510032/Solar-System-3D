@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import { OrbitControls, Stars as StarsDrei } from '@react-three/drei';
 import * as THREE from 'three';
 import Planet from './Planet';
 import { CelestialBody } from '../types';
@@ -10,198 +11,83 @@ interface SolarSystemProps {
   timeSpeed: number;
   selectedBody: CelestialBody | null;
   onSelectBody: (body: CelestialBody) => void;
+  showOrbits: boolean;
+  showLabels: boolean;
 }
+
+const AsteroidBelt = () => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const count = 3000;
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+
+  useEffect(() => {
+    if (!meshRef.current) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 75 + Math.random() * 10;
+      const y = (Math.random() - 0.5) * 2;
+      dummy.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
+      dummy.rotation.set(Math.random(), Math.random(), Math.random());
+      const s = 0.1 + Math.random() * 0.2;
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      meshRef.current.setMatrixAt(i, dummy.matrix);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [dummy]);
+
+  useFrame((state) => {
+    if (meshRef.current) meshRef.current.rotation.y += 0.0002;
+  });
+
+  return (
+    /* @ts-ignore */
+    <instancedMesh ref={meshRef} args={[new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#555' }), count]} />
+  );
+};
 
 const CameraController = ({ selectedBody }: { selectedBody: CelestialBody | null }) => {
   const { camera, controls, scene } = useThree();
   const targetWorldPos = new THREE.Vector3();
   const goalPosition = new THREE.Vector3();
 
-  useEffect(() => {
-    if (controls) {
-      const ctrl = controls as any;
-      ctrl.enableDamping = true;
-      ctrl.dampingFactor = 0.05;
-      ctrl.rotateSpeed = 0.5;
-    }
-  }, [controls]);
-
   useFrame(() => {
     if (!controls) return;
     const ctrl = controls as any;
-
     if (selectedBody) {
       const targetObj = scene.getObjectByName(selectedBody.name);
       if (targetObj) {
         targetObj.getWorldPosition(targetWorldPos);
         ctrl.target.lerp(targetWorldPos, 0.1);
-
-        const focusDistance = selectedBody.radius * 4.5 + 5;
+        const dist = selectedBody.radius * 4 + 8;
         const dir = new THREE.Vector3().subVectors(camera.position, targetWorldPos).normalize();
-        
-        goalPosition.copy(targetWorldPos).add(dir.multiplyScalar(focusDistance));
+        goalPosition.copy(targetWorldPos).add(dir.multiplyScalar(dist));
         camera.position.lerp(goalPosition, 0.05);
       }
-    } else {
-      if (ctrl.target.length() > 0.5) {
-        ctrl.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
-      }
+    } else if (ctrl.target.length() > 0.5) {
+      ctrl.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
     }
     ctrl.update();
   });
-
   return null;
 };
 
-// Realistic Starfield with Depth and Nebula
-const GalacticBackground = () => {
-  const pointsRef = useRef<THREE.Points>(null);
-  const nebulaRef = useRef<THREE.Group>(null);
-  
-  const points = useMemo(() => {
-    const count = 12000;
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    
-    for (let i = 0; i < count; i++) {
-      const r = 600 + Math.random() * 400;
-      const theta = 2 * Math.PI * Math.random();
-      const phi = Math.acos(2 * Math.random() - 1);
-      
-      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      positions[i * 3 + 2] = r * Math.cos(phi);
-
-      // Star types: Blue-white, Yellow-white, Reddish
-      const type = Math.random();
-      if (type > 0.8) { // Red
-        colors[i * 3] = 1; colors[i * 3 + 1] = 0.8; colors[i * 3 + 2] = 0.8;
-      } else if (type > 0.4) { // Blue
-        colors[i * 3] = 0.8; colors[i * 3 + 1] = 0.9; colors[i * 3 + 2] = 1;
-      } else { // White
-        colors[i * 3] = 1; colors[i * 3 + 1] = 1; colors[i * 3 + 2] = 1;
-      }
-      
-      sizes[i] = Math.random() * 1.5;
-    }
-    return { positions, colors, sizes };
-  }, []);
-
-  useFrame((state) => {
-    if (nebulaRef.current) {
-      nebulaRef.current.rotation.y += 0.0001;
-      nebulaRef.current.rotation.z += 0.00005;
-    }
-  });
-
+const SolarSystem: React.FC<SolarSystemProps> = ({ bodies, timeSpeed, selectedBody, onSelectBody, showOrbits, showLabels }) => {
   return (
-    <group>
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={points.positions.length / 3} array={points.positions} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={points.colors.length / 3} array={points.colors} itemSize={3} />
-        </bufferGeometry>
-        <pointsMaterial size={1.2} vertexColors transparent opacity={0.8} sizeAttenuation={true} />
-      </points>
-      
-      {/* Subtle nebulae glow using larger translucent points */}
-      <group ref={nebulaRef}>
-        {[...Array(5)].map((_, i) => (
-          <mesh key={i} position={[
-            (Math.random() - 0.5) * 400,
-            (Math.random() - 0.5) * 400,
-            (Math.random() - 0.5) * 400
-          ]}>
-            <sphereGeometry args={[100 + Math.random() * 100, 16, 16]} />
-            <meshBasicMaterial 
-              color={i % 2 === 0 ? "#1a0f30" : "#0f1a30"} 
-              transparent 
-              opacity={0.05} 
-              side={THREE.BackSide} 
-            />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-};
-
-// Procedural sun rays
-const SunRays = () => {
-  const rayRef = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (rayRef.current) {
-      rayRef.current.rotation.z += 0.001;
-    }
-  });
-
-  return (
-    <group ref={rayRef}>
-      {[...Array(8)].map((_, i) => (
-        <mesh key={i} rotation={[0, 0, (i * Math.PI) / 4]}>
-          <planeGeometry args={[120, 0.5]} />
-          <meshBasicMaterial 
-            color="#FDB813" 
-            transparent 
-            opacity={0.03} 
-            blending={THREE.AdditiveBlending} 
-            side={THREE.DoubleSide} 
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-const SolarSystem: React.FC<SolarSystemProps> = ({ 
-  bodies, 
-  timeSpeed, 
-  selectedBody, 
-  onSelectBody
-}) => {
-  return (
-    <div className="w-full h-full absolute inset-0 z-0 bg-[#010103]">
-      <Canvas 
-        shadows 
-        camera={{ position: [0, 100, 200], fov: 45, far: 5000 }}
-        gl={{ antialias: true, alpha: false, stencil: false }}
-      >
+    <div className="w-full h-full absolute inset-0 z-0">
+      <Canvas shadows camera={{ position: [0, 150, 300], fov: 45 }}>
+        {/* @ts-ignore */}
         <color attach="background" args={['#010103']} />
-        
-        <ambientLight intensity={0.4} />
-        <pointLight 
-          position={[0, 0, 0]} 
-          intensity={6} 
-          decay={0} 
-          distance={4000} 
-          color="#fff5e6" 
-          castShadow 
-          shadow-mapSize-width={2048} 
-          shadow-mapSize-height={2048}
-        />
-        
-        <GalacticBackground />
-        <SunRays />
-
+        {/* @ts-ignore */}
+        <ambientLight intensity={0.5} />
+        {/* @ts-ignore */}
+        <pointLight position={[0,0,0]} intensity={8} decay={0} distance={1000} castShadow />
+        <StarsDrei radius={500} depth={50} count={20000} factor={4} saturation={0} fade speed={1} />
+        <AsteroidBelt />
         <React.Suspense fallback={null}>
-          {bodies.map((body) => (
-            <Planet 
-              key={body.name} 
-              data={body} 
-              timeSpeed={timeSpeed} 
-              selectedBodyName={selectedBody?.name}
-              onSelect={onSelectBody}
-            />
-          ))}
+          {bodies.map(b => <Planet key={b.name} data={b} timeSpeed={timeSpeed} selectedBodyName={selectedBody?.name} onSelect={onSelectBody} showLabels={showLabels} />)}
         </React.Suspense>
-
-        <OrbitControls 
-          makeDefault 
-          minDistance={2} 
-          maxDistance={2500}
-        />
-        
+        <OrbitControls makeDefault minDistance={2} maxDistance={3000} />
         <CameraController selectedBody={selectedBody} />
       </Canvas>
     </div>
